@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Blacklist - Ultimate Protégé RPG</title>
+    <style>
+        body {
+            background-color: #080808;
+            color: #e5e5e5;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .game-container {
+            width: 1000px;
+            background: #111111;
+            border: 2px solid #8b0000;
+            box-shadow: 0 0 25px rgba(139, 0, 0, 0.6);
+            border-radius: 8px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        /* HUD PANEL */
+        .hud {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            background: #1a1a1a;
+            padding: 15px;
+            border-bottom: 2px solid #8b0000;
+            font-size: 13px;
+            gap: 10px;
+        }
+        .stat-box { background: #222; padding: 8px; border-radius: 4px; border: 1px solid #333; text-align: center; }
+        .stat-box span { color: #ff3333; font-weight: bold; }
+
+        /* SCREEN INTERFEJS 2.5D PARALLAX */
+        .action-screen {
+            position: relative;
+            width: 100%;
+            height: 350px;
+            background: #000;
+            overflow: hidden;
+            border-bottom: 2px solid #8b0000;
+        }
+        .bg-layer {
+            position: absolute;
+            width: 115%;
+            height: 100%;
+            background-image: url('https://unsplash.com'); /* Domyślne tło */
+            background-size: cover;
+            background-position: center;
+            filter: brightness(0.25) sepia(0.1) hue-rotate(320deg);
+            transition: background-image 0.5s ease-in-out;
+            animation: parallaxMotion 15s ease-in-out infinite alternate;
+        }
+        @keyframes parallaxMotion {
+            0% { transform: scale(1.05) translateX(0); }
+            100% { transform: scale(1.05) translateX(-4%); }
+        }
+        .muzzle-flash {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle, #fff 10%, #ffaa00 50%, transparent 70%);
+            border-radius: 50%;
+            display: none;
+            box-shadow: 0 0 30px #ff6600;
+            z-index: 10;
+        }
+        .screen-text {
+            position: absolute;
+            bottom: 15px; left: 20px;
+            background: rgba(0,0,0,0.85);
+            padding: 8px 15px;
+            border-radius: 4px;
+            border-left: 4px solid #ff3333;
+            font-weight: bold;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }
+
+        /* LOGS */
+        .log-box {
+            height: 220px;
+            overflow-y: auto;
+            background: #050505;
+            padding: 15px;
+            font-size: 14px;
+            line-height: 1.6;
+            border-bottom: 2px solid #222;
+        }
+        .log-entry { margin-bottom: 10px; border-left: 3px solid #444; padding-left: 10px; }
+        .log-success { border-left-color: #2ecc71; color: #9fefc1; }
+        .log-fail { border-left-color: #e74c3c; color: #ff9999; }
+        .log-system { border-left-color: #f1c40f; color: #fff3a8; }
+        .red-speech { color: #ffcccc; font-style: italic; border-left-color: #ff3333; font-weight: 500; }
+
+        /* BUTTONS MENU */
+        .tabs {
+            display: flex;
+            background: #151515;
+            border-bottom: 1px solid #333;
+        }
+        .tab-btn {
+            flex: 1;
+            background: none;
+            border: none;
+            color: #aaa;
+            padding: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s, color 0.2s;
+        }
+        .tab-btn.active {
+            background: #8b0000;
+            color: #fff;
+        }
+        .menu-box {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            background: #0f0f0f;
+            min-height: 180px;
+        }
+        button.action-btn {
+            background: #1c1c1c;
+            color: #fff;
+            border: 1px solid #3a3a3a;
+            padding: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: all 0.2s;
+            text-align: left;
+        }
+        button.action-btn:hover {
+            background: #8b0000;
+            border-color: #ff3333;
+            box-shadow: 0 0 10px rgba(255, 51, 51, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <!-- HUD -->
+    <div class="hud">
+        <div class="stat-box">Życie: <span id="hp">100/100</span></div>
+        <div class="stat-box">Pancerz: <span id="armor">0/50</span></div>
+        <div class="stat-box">Stres: <span id="stress">0/100</span></div>
+        <div class="stat-box">Gotówka: <span id="cash">$25,000</span></div>
+        <div class="stat-box">Black Coins: <span id="bc">0</span></div>
+        <div class="stat-box">Intel: <span id="intel">0</span></div>
+        <div class="stat-box" style="grid-column: span 2;">Broń: <span id="weapon">Browning (+0)</span></div>
+        <div class="stat-box" style="grid-column: span 2;">Sojusznicy: <span id="allies">Brak</span></div>
+    </div>
+
+    <!-- 2.5D ANIMATED SCREEN -->
+    <div class="action-screen">
+        <div class="bg-layer" id="bg-layer"></div>
+        <div class="muzzle-flash" id="flash1" style="top: 45%; left: 25%;"></div>
+        <div class="muzzle-flash" id="flash2" style="top: 50%; left: 65%;"></div>
+        <div class="screen-text" id="screen-title">Waszyngton - Kryjówka Reddingtona</div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="log-box" id="log-box"></div>
+
+    <!-- SYSTEM ZAKŁADEK MENU -->
+    <div class="tabs">
+        <button id="tab-missions" class="tab-btn active" onclick="switchTab('missions')">🎯 Operacje i Misje</button>
+        <button id="tab-shop" class="tab-btn" onclick="switchTab('shop')">🏪 Zbrojownia & Trening</button>
+        <button id="tab-empire" class="tab-btn" onclick="switchTab('empire')">🏢 Imperium & Kontakty</button>
+    </div>
+
+    <!-- PRZYCISKI MENU -->
+    <div class="menu-box" id="menu-box"></div>
+</div>
+
+<script>
+    let defaultState = {
+        hp: 100, maxHp: 100, armor: 0, maxArmor: 50, stress: 0,
+        cash: 25000, bc: 0, intel: 50, combatSkill: 10,
+        weaponName: "Browning Hi-Power", weaponMod: 0,
+        hasBaz: false, hasTadashi: false, hasVesco: false, hasMarvin: false,
+        ownedPorts: 0, ownedCasinos: 0, ownedMines: 0,
+        thrushesInfected: false, garveyKret: false, activeTab: 'missions'
+    };
+
+    let p = JSON.parse(localStorage.getItem('blacklist_rpg_save')) || {...defaultState};
+
+    const locations = {
+        red: 'https://unsplash.com', 
+        fbi: 'https://unsplash.com', 
+        docks: 'https://unsplash.com', 
+        cabal: 'https://unsplash.com', 
+        casino: 'https://unsplash.com' 
+    };
+
+    function saveGame() {
+        localStorage.setItem('blacklist_rpg_save', JSON.stringify(p));
+    }
+
+    function updateHUD() {
+        document.getElementById('hp').innerText = `${p.hp}/${p.maxHp}`;
+        document.getElementById('armor').innerText = `${p.armor}/${p.maxArmor}`;
+        document.getElementById('stress').innerText = `${p.stress}/100`;
+        document.getElementById('cash').innerText = `$${p.cash.toLocaleString()}`;
+        document.getElementById('bc').innerText = p.bc;
+        document.getElementById('intel').innerText = p.intel;
+        document.getElementById('weapon').innerText = `${p.weaponName} (+${p.weaponMod})`;
+        
+        let alliesList = [];
+        if(p.hasBaz) alliesList.push("Baz");
+        if(p.hasTadashi) alliesList.push("Tadashi");
+        if(p.hasVesco) alliesList.push("Vesco");
+        if(p.hasMarvin) alliesList.push("Marvin");
+        document.getElementById('allies').innerText = alliesList.length > 0 ? alliesList.join(", ") : "Brak";
+        
+        saveGame();
+        renderMenu();
+    }
+
+    function addLog(text, type = 'normal') {
+        const logBox = document.getElementById('log-box');
+        const entry = document.createElement('div');
+        entry.className = `log-entry log-${type}`;
+        entry.innerText = text;
+        logBox.appendChild(entry);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function addRedSpeech(text) {
+        addLog(`Raymond Reddington: "${text}"`, 'red-speech');
+    }
+
+    function triggerShootEffect() {
+        const f1 = document.getElementById('flash1');
+        const f2 = document.getElementById('flash2');
+        f1.style.display = 'block'; setTimeout(() => f1.style.display = 'none', 120);
+        setTimeout(() => { f2.style.display = 'block'; }, 180); setTimeout(() => f2.style.display = 'none', 300);
+    }
+
+    function changeLocation(locKey, title) {
+        document.getElementById('bg-layer').style.backgroundImage = `url('${locations[locKey]}')`;
+        document.getElementById('screen-title').innerText = title;
+    }
+
+    function switchTab(tabName) {
+        p.activeTab = tabName;
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        renderMenu();
+    }
+
+    function runMission(type) {
+        if(p.hp <= 20) { 
+            addLog("Twoje HP jest zbyt niskie! Udaj się na leczenie.", "fail"); 
+addRedSpeech("Moja droga, spójrz na siebie. Krwawisz. Szaleństwem jest iść na linię frontu w tym stanie. Odpocznij.");return;}if(p.stress >= 85) {addLog("Jesteś sparaliżowana stresem psychologicznym! Odpocznij u boku Raymonda.", "fail");addRedSpeech("Strach to kapryśny towarzysz. Kiedy paraliżuje umysł, popełnia się błędy. Usiądź, napij się ginu.");return;}triggerShootEffect();let roll = Math.floor(Math.random() * 20) + 1;let modifier = p.weaponMod + (p.hasBaz ? 2 : 0) + (p.hasVesco && type==='skinners' ? 3 : 0);let total = roll + modifier;p.stress = Math.min(100, p.stress + 15);if(type === 'fbi') {changeLocation('fbi', "OPERACJA FBI: Tropienie Czarnej Listy");addLog([FBI]: Koordynujesz rajd Post Office. Rzut d20: ${roll} (+${modifier}) = Łącznie ${total});if(total >= 11) {p.cash += 40000; p.bc += 1; p.intel += 30;addLog("SUKCES! Blacklister schwytany przez FBI Coopera. +$40,000, +1 Black Coin, +30 Intel!", "success");addRedSpeech("Cooper i jego agenci świętują sukces w Post Office. Myślą, że uratowali świat. Urocze, prawda? Najważniejsze, że ich zaufanie rośnie, a my mamy kolejny żeton w kieszeni.");} else {p.hp = Math.max(10, p.hp - 30);addLog("PORAŻKA! Popadłaś w zasadzkę wrogów. Tracisz 30 HP.", "fail");addRedSpeech("Zasadzka... Ścigaliśmy ducha, a trafiliśmy na ścianę ognia. FBI liże rany, ale to Ty ucierpiałaś najbardziej. Musimy podnieść Twoje wyszkolenie.");}}if(type === 'skinners') {changeLocation('docks', "PODZIEMIE: Wojna ze Skinnersami");addLog([Wojna w Dokach]: Uderzasz w ludzi Vincenta Duke'a. Rzut d20: ${roll} (+${modifier}) = Łącznie ${total});if(total >= 13) {let cashGain = p.hasMarvin ? 250000 : 150000;p.cash += cashGain; p.bc += 1;addLog(SUKCES! Przejęłaś transport Skinnersów. Zdobywasz $${cashGain.toLocaleString()} i +1 Black Coin!, "success");if(p.hasVesco) {addRedSpeech("Vincent Duke i jego starożytna siatka Skinnersów zostali oskubani w ułamek sekundy! Robert Vesco spisał się znakomicie jako nasz kret w ich szeregach. Genialna robota, Moja Droga.");} else {addRedSpeech("Towar przejęty. Pieniądze zabezpieczone. Skinnersi dowiedzieli się właśnie, że ich czas w tym porcie bezpowrotnie minął.");}} else {if(p.armor > 0) {p.armor = Math.max(0, p.armor - 40);addLog("Kamizelka przyjęła uderzenie od ludzi Duke'a! Pancerz uszkodzony.", "fail");} else {p.hp = Math.max(10, p.hp - 45);addLog("RANA POSTRZAŁOWA! Tracisz 45 HP!", "fail");}addRedSpeech("Vincent Duke nie żartuje, kiedy walczy o swoją technologię. Byliśmy zbyt pewni siebie w tych dokach. Ściągam medyka podziemia, zanim Cooper cokolwiek zwęszy.");}}updateHUD();}function buyItem(type, cost) {if(p.cash < cost) {addLog("Brak wystarczającej gotówki!", "fail");addRedSpeech("Pieniądze to tylko narzędzie, ale bez odpowiedniej ilości stali w banku nawet Marvin Gerard nic nie zdziała. Zaróbmy najpierw trochę grosza.");return;}p.cash -= cost;if(type === 'gym') {p.maxHp += 25; p.hp = p.maxHp;addLog(Trening podniósł Twoją sprawność. Max HP wynosi teraz ${p.maxHp}!, "success");addRedSpeech("Kondycja, refleks, siła uderzenia. Półświatek nie wybacza powolności. Widzę w Twoich oczach determinację – stajesz się prawdziwym drapieżnikiem.");}if(type === 'suit') {p.combatSkill += 10;addLog("Garnitur z Savile Row kupiony! +10 Combat Skill.", "success");addRedSpeech("Wspaniale! Dobrze skrojony ubiór to zbroja współczesnego dyplomaty i gangstera. Ludzie oceniają nas w pierwszych trzech sekundach meetingu. Wyglądasz zjawiskowo.");}if(type === 'wine') {p.stress = 0; changeLocation('red', "Kryjówka - Odpoczynek z Redem");addLog("Odpoczynek u boku Raymonda. Stres zredukowany do 0!", "success");addRedSpeech("Château Pétrus, rocznik 1982. Przypomina mi upalne popołudnie w słońcu Bordeaux... Zapomnij na chwilę o Kabałę, o FBI, o problemach. Posłuchajmy jazzu. Twój umysł potrzebował tego resetu.");}if(type === 'armor3') {p.armor = 50;addLog("Kamizelka poziomu 3 założona (50/50).", "success");addRedSpeech("Lekki, wielowarstwowy kevlar. Idealnie chowa się pod jedwabną podszewką Marynarki. Chroni serce, nie psując przy tym nienagannej prezencji.");}if(type === 'm4a1') {p.weaponName = "Colt M4A1 Tactical"; p.weaponMod = 2;addLog("Zakupiono Colt M4A1! +2 do rzutów w walce.", "success");addRedSpeech("Colt M4A1. Amerykański klasyk. Celny, niezawodny i potężny. Pamiętaj jednak – głośna spluwa przyciąga niepotrzebną uwagę. Używaj jej tylko wtedy, gdy negocjacje całkowicie zawiodą.");}if(type === 'hk416') {p.weaponName = "Custom HK416 Black"; p.weaponMod = 3;addLog("Wyciszony HK416 Black zakupiony! +3 do rzutów.", "success");addRedSpeech("Och, Custom HK416 z węglowym tłumikiem. Prawdziwe dzieło inżynierii. Cicha, zabójcza, precyzyjna jak skalpel chirurgiczny. Idealne narzędzie dla kogoś, kto uczy się operować w głębokim cieniu.");}updateHUD();}function buyEmpire(type, cost, isBC = false) {if(isBC ? p.bc < cost : p.cash < cost) {addLog("Nie stać Cię na tę inwestycję geopolityczną!", "fail");return;}if(isBC) p.bc -= cost; else p.cash -= cost;if(type === 'baz') {p.hasBaz = true;addLog("Zatrudniono Baza i oddział Vanguard! +2 do walki.", "success");addRedSpeech("Baz i jego chłopcy z Vanguard są już na posterunku. To bezwzględni profesjonaliści. Od teraz każda nasza kryjówka jest bezpieczna niczym skarbiec w Fort Knox.");}if(type === 'tadashi') {p.hasTadashi = true;addLog("Zwerbowano 16-letniego Tadashiego Ito!", "success");addRedSpeech("Tadashi to absolutny geniusz komputerowy! Aram Mojtabai potrzebuje tygodnia na złamanie szyfru Pentagonu, a ten dzieciak robi to w przerwie między grami wideo, kłócąc się ze swoją matką o kolację.");}if(type === 'marvin') {p.hasMarvin = true;addLog("Marvin Gerard prowadzi Twoje finanse! +$100,000 do zysków.", "success");addRedSpeech("Marvin bywa irytujący i neurotyczny, ale nikt na tej planecie nie potrafi tak sprawnie ukryć milionów dolarów przed rządem i IRS. Twoje przepływy finansowe są od teraz całkowicie nietykalne.");}if(type === 'panabaker') {p.bc += 5;addLog("Szantażujesz Cynthie Panabaker brudami! +5 Black Coins.", "success");addRedSpeech("Cynthia Panabaker... Kiedy położyłaś te akta na jej biurku, pobladła bardziej niż panna młoda przed ołtarzem. Zyskaliśmy potężnego anioła stróża w Departamencie Sprawiedliwości.");}if(type === 'port') {p.ownedPorts++;addLog(Zakupiono Terminal Portowy! (Posiadasz: ${p.ownedPorts}), "success");addRedSpeech("Rotterdam to serce globalnej logistyki. Posiadanie własnego portu oznacza, że możemy przemieścić absolutnie wszystko przez granicę – od diamentów po sekrety – bez żadnych pytań ze strony celników.");}updateHUD();}function playVesco() {if(p.cash < 15000) {addLog("Musisz mieć $15,000 na wejście w układ z Robertem!", "fail");return;}p.cash -= 15000;let roll = Math.random();changeLocation('casino', "Skok Stulecia z Robertem Vesco");if(roll > 0.20) {let win = 45000; p.cash += win;addLog([Robert Vesco]: "Haha! Moja Droga, numer na religijnego fanatyka z klasztoru znowu wypalił!" Zyskujesz $${win.toLocaleString()}!, "success");addRedSpeech("Vesco znowu to zrobił! Ten stary drań oszukał wszystkich i potroił naszą stawkę. Cieszę się, że trzymamy go blisko... chociaż ukryj przed nim część gotówki, na wszelki wypadek.");} else {addLog([Zdrada]: Robert Vesco uciekł z Twoimi $15,000 na Bahamy!, "fail");addRedSpeech("Klasyczny Robert... Wyparował z gotówką szybciej niż dym z cygara. Ale nie martw się, Moja Droga. Znam go za dobrze. Dokładnie wiem, w którym hotelu na Bahamach pije teraz mojego ulubionego ginu. Ściągniemy go z powrotem.");}updateHUD();}function renderMenu() {const box = document.getElementById('menu-box');box.innerHTML = "";if (p.activeTab === 'missions') {box.innerHTML += <button class="action-btn" onclick="runMission('fbi')">🕵️‍♂️ Misja FBI Post Office (+1 BC / Specjalne Akta)</button>;box.innerHTML += <button class="action-btn" onclick="runMission('skinners')">🔥 Atak na Doki (Wojna ze Skinnersami Vincenta Duke'a)</button>;box.innerHTML += <button class="action-btn" onclick="playVesco()">🎲 Akcja z Robertem Vesco ($15,000 - Ryzyko Skoku)</button>;}else if (p.activeTab === 'shop') {box.innerHTML += <button class="action-btn" onclick="buyItem('gym', 25000)">🏋️‍♂️ Trening Fizyczny / Siłownia ($25,000) [+25 Max HP]</button>;box.innerHTML += <button class="action-btn" onclick="buyItem('wine', 25000)">🍷 Butelka Château Pétrus i Jazz ($25,000) [Stres -> 0]</button>;box.innerHTML += <button class="action-btn" onclick="buyItem('armor3', 50000)">🛡️ Kamizelka Kuloodporna T3 ($50,000) [Pancerz 50]</button>;box.innerHTML += <button class="action-btn" onclick="buyItem('m4a1', 85000)">🔫 Karabinek Colt M4A1 ($85,000) [Modyfikator +2]</button>;box.innerHTML += <button class="action-btn" onclick="buyItem('hk416', 140000)">🔫 HK416 Black Edition ($140,000) [Modyfikator +3]</button>;box.innerHTML += <button class="action-btn" onclick="buyItem('suit', 15000)">👔 Garnitur Savile Row ($15,000) [+10 Combat]</button>;}else if (p.activeTab === 'empire') {if(!p.hasBaz) box.innerHTML += <button class="action-btn" onclick="buyEmpire('baz', 500000)">🎖️ Zwerbuj Baza i Vanguard ($500,000) [+2 stałe do walki]</button>;if(!p.hasTadashi) box.innerHTML += <button class="action-btn" onclick="buyEmpire('tadashi', 300000)">🧑‍💻 Zwerbuj Tadashiego Ito ($300,000) [Cyber-Geniusz]</button>;if(!p.hasMarvin) box.innerHTML += <button class="action-btn" onclick="buyEmpire('marvin', 800000)">💼 Zatrudnij Marvina Gerarda ($800,000) [+100k do zysków]</button>;box.innerHTML += <button class="action-btn" onclick="buyEmpire('panabaker', 2, true)">⚖️ Szantaż Cynthii Panabaker (Koszt: 2 BC) [Zyskujesz 5 BC]</button>;box.innerHTML += <button class="action-btn" onclick="buyEmpire('port', 1500000)">🚢 Kup Terminal Portowy Rotterdam ($1.5M)</button>;box.innerHTML += <button class="action-btn" style="color:#ff3333;" onclick="resetData()">🔄 Całkowity Reset Postępów</button>;}}function resetData() {if(confirm("Czy na pewno chcesz usunąć zapis gry i zacząć od nowa?")) {localStorage.removeItem('blacklist_rpg_save');p = {...defaultState};document.getElementById('log-box').innerHTML = "";addLog("Wszystkie dane wyczyszczone. Raymond Reddington nalewa świeżego ginu...");addRedSpeech("Zacznijmy od czystej karty, moja droga. Świat stoi przed nami otworem. Vincent Duke czeka w dokach.");changeLocation('red', "Waszyngton - Kryjówka Reddingtona");updateHUD();}}// Pierwsze powitanie na starcie gryif (document.getElementById('log-box').innerHTML === "") {addLog("[SYSTEM]: Pomyślnie załadowano bezpieczny zapis gry z LocalStorage.", "system");addRedSpeech("Witaj Moja Droga. Czas rozpocząć naukę prawdziwego fachu. Cooper w Post Office szuka pomocy, a Vincent Duke i jego bezwzględni Skinnersi przejęli transport technologii w dokach Nowego Jorku. Twoje zasoby i lojalny Robert Vesco czekają na rozkazy. Co robimy?");}updateHUD();
